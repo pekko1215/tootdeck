@@ -139,6 +139,9 @@ function addStramListener(instance, access_token, stream, column) {
 	var data = JSON.parse(event.data);
 	var payst = data.payload;
 	var payload = JSON.parse(payst);
+	if(typeof payload === typeof 0){
+		return;
+	}
 	if(local_mode){
 		if(payload.uri.indexOf(local_mode.replace('https://','').replace("/",''))==-1){
 			return;
