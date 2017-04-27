@@ -156,6 +156,9 @@ function addStramListener(instance, access_token, stream, column) {
 		'toot':payload.content
 	}
 	// console.log(tootObj)
+	if(this.targetdom.children().length>50){
+		this.targetdom.children().last().remove();
+	}
 	this.targetdom.prepend(parseContentsData(tootObj))
         };
         socket.onopen = console.log;
