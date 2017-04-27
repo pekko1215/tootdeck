@@ -8,6 +8,11 @@ $(function() {
                         var p = b.parents('[class="column-panel flex flex-column height-p--100"]')
                         var i = p.find('[class="js-submittable-input js-column-title-edit-box column-title-edit-box "]').eq(0)
                         var baseURL = i.attr('value');
+                        var tstream = "public"
+                        if (baseURL.split(':').length != 1) {
+                                tstream = baseURL.split(':')[1];
+                                baseURL = baseURL.split(':')[0];
+                        }
                         if (baseURL.slice(-1) != '/') {
                                 baseURL += '/'
                         }
@@ -41,7 +46,7 @@ $(function() {
                                         } else { //まだなーんにもしてない場合
                                                 value.keys.tmpurl = baseURL;
                                                 value.keys[baseURL] = {};
-                                                value.keys[baseURL].column = column;
+                                                value.keys[baseURL].columns = [{ 'stream': tstream, 'column': column }];
                                                 chrome.storage.local.set({ 'keys': value.keys }, function() {
                                                         redirect_uris = chrome.extension.getURL('callback.html');
                                                         var ClientData = {
@@ -72,6 +77,9 @@ $(function() {
                                                         })
                                                 })
                                         }
+                                } else {
+                                        value.keys[baseURL].columns.push({ 'stream': tstream, 'column': column })
+                                        chrome.storage.local.set({ 'keys': value.keys })
                                 }
                                 if (!(baseURL in value.keys) && !('tmpurl' in value.keys)) {
                                         value.keys.tmpurl = baseURL;
@@ -101,79 +109,85 @@ $(function() {
         }, 800)
 
         loadltimer = setInterval(function() {
-	     if($('section').length!=0){
-		clearInterval(loadltimer)
-	     }else{
-		return;
-	     }
+                if ($('section').length != 0) {
+                        clearInterval(loadltimer)
+                } else {
+                        return;
+                }
                 chrome.storage.local.get('keys', function(value) {
                         for (instance in value.keys) {
                                 if (instance == "tmpurl") {
                                         continue;
                                 }
-                                addStramListener(instance, value.keys[instance].access_token, "local", value.keys[instance].column)
+                                ckey = value.keys[instance]
+                                for (i in ckey.columns) {
+                                        console.log()
+                                        addStramListener(instance, ckey.access_token, ckey.columns[i].stream, ckey.columns[i].column)
+                                }
                         }
                 })
         }, 100)
 })
 
-function addStramListener(instance, access_token, stream, column) {
+function addStramListener(instance, access_token, tstream, column) {
         var streampath = "public"
         var local_mode = false;
-        switch(stream){
-	case 'local':
-		local_mode = instance;
-	break;
-	case 'user':
-		streampath = 'user'
-	break;
+        console.log(tstream)
+        switch (tstream) {
+                case 'local':
+                        local_mode = instance;
+                        break;
+                case 'user':
+                        streampath = 'user'
+                        break;
         }
-        var wss = instance.replace("https", "wss").replace("http", "ws") + "api/v1/streaming"+"?access_token=" + access_token+"&stream="+streampath
+        var wss = instance.replace("https", "wss").replace("http", "ws") + "api/v1/streaming" + "?access_token=" + access_token + "&stream=" + streampath
         var line = getLine(column);
         line.empty()
         console.log(wss)
         var socket = new WebSocket(wss)
         socket.targetdom = line;
         socket.local_mode = local_mode;
-        socket.onmessage = function(event){
-	var data = JSON.parse(event.data);
-	var payst = data.payload;
-	var payload = JSON.parse(payst);
-	if(typeof payload === typeof 0){
-		return;
-	}
-	if(local_mode){
-		if(payload.uri.indexOf(local_mode.replace('https://','').replace("/",''))==-1){
-			return;
-		}
-	}
-	var tootObj = {
-		'userlink':payload.account.url,
-		'usericon':payload.account.avatar,
-		'userid':payload.account.username,
-		'username':payload.account.display_name,
-		'posttime':payload.created_at,
-		'toot':payload.content
-	}
-	// console.log(tootObj)
-	if(this.targetdom.children().length>50){
-		this.targetdom.children().last().remove();
-	}
-	this.targetdom.prepend(parseContentsData(tootObj))
+        socket.onmessage = function(event) {
+                var data = JSON.parse(event.data);
+                var payst = data.payload;
+                var payload = JSON.parse(payst);
+                if (typeof payload === typeof 0) {
+                        return;
+                }
+                if (local_mode) {
+                        if (payload.uri.indexOf(local_mode.replace('https://', '').replace("/", '')) == -1) {
+                                return;
+                        }
+                }
+                var tootObj = {
+                                'userlink': payload.account.url,
+                                'usericon': payload.account.avatar,
+                                'userid': payload.account.username,
+                                'username': payload.account.display_name,
+                                'posttime': payload.created_at,
+                                'toot': payload.content
+                        }
+                        // console.log(tootObj)
+                if (this.targetdom.children().length > 50) {
+                        this.targetdom.children().last().remove();
+                }
+                this.targetdom.prepend(parseContentsData(tootObj))
         };
         socket.onopen = console.log;
         socket.onclose = console.log;
         socket.onerror = console.log;
 }
-function getLine(column){
-	var base = $('input[class="js-submittable-input js-column-title-edit-box column-title-edit-box "][value="'+column+'"]');
-	var section = base.parents('section').eq(0)
-	var line = section.find('[class="js-column-scroller js-dropdown-container column-scroller position-rel scroll-v flex-auto height-p--100 scroll-styled-v "]')
-	return line;
+
+function getLine(column) {
+        var base = $('input[class="js-submittable-input js-column-title-edit-box column-title-edit-box "][value="' + column + '"]');
+        var section = base.parents('section').eq(0)
+        var line = section.find('[class="js-column-scroller js-dropdown-container column-scroller position-rel scroll-v flex-auto height-p--100 scroll-styled-v "]')
+        return line;
 }
 
-function parseContentsData(data){
-	var baseHTML = '\
+function parseContentsData(data) {
+        var baseHTML = '\
 <article class="stream-item js-stream-item  is-draggable  is-actionable" style="">\
     <div class="js-stream-item-content item-box js-show-detail ">\
         <div class="js-tweet tweet         is-favorite">\
@@ -195,20 +209,20 @@ function parseContentsData(data){
         </div>\
     </div>\
 </article>'
-/*
-$userlink
-$usericon
-$userid
-$username
-$posttime
-$poststatus
- */
-return baseHTML.replace(/\$userlink/g,data.userlink)
-                             .replace(/\$usericon/g,data.usericon)
-                             .replace(/\$userid/g,data.userid)
-                             .replace(/\$username/g,data.username)
-                             .replace(/\$posttime/g,data.posttime)
-                             .replace(/\$poststaus/g,data.poststaus)
-                             .replace(/\$toot/g,data.toot)
+                /*
+                $userlink
+                $usericon
+                $userid
+                $username
+                $posttime
+                $poststatus
+                 */
+        return baseHTML.replace(/\$userlink/g, data.userlink)
+                .replace(/\$usericon/g, data.usericon)
+                .replace(/\$userid/g, data.userid)
+                .replace(/\$username/g, data.username)
+                .replace(/\$posttime/g, data.posttime)
+                .replace(/\$poststaus/g, data.poststaus)
+                .replace(/\$toot/g, data.toot)
 }
 // new (require("ws"))("wss://pawoo.net/api/v1/streaming/?access_token=bd6b1598912e4bd9c048010dbb782882467f8ed2b0f84100223f5728e555cd0c&stream=public").on("message",console.log)'
