@@ -162,7 +162,9 @@ function addStramListener(instance, access_token, tstream, column) {
                 var data = JSON.parse(event.data);
                 var payst = data.payload;
                 var payload = JSON.parse(payst);
-
+                if(typeof payload === 'number'){
+		return;
+                }
                 var instanceurl = (function(uri) {
                         return uri.split(':')[1].split(',')[0];
                 })(payload.uri);
@@ -194,9 +196,9 @@ function addStramListener(instance, access_token, tstream, column) {
                 }).done(function(res) {
                         for (var index in res) {
                                 if (apipath == "public") {
-			      console.log(thistmp.local_mode)
+			      // console.log(thistmp.local_mode)
                                         if (thistmp.local_mode !== false) {
-				   console.log(thistmp.local_mode)
+				   // console.log(thistmp.local_mode)
                                                 var instanceurl = (function(uri) {
                                                         return uri.split(':')[1].split(',')[0];
                                                 })(res[index].uri);
