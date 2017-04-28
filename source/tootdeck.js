@@ -121,10 +121,14 @@ $(function() {
                                 }
                                 ckey = value.keys[instance]
                                 for (i in ckey.columns) {
-                                        console.log()
-                                        addStramListener(instance, ckey.access_token, ckey.columns[i].stream, ckey.columns[i].column)
+			       var ret = addStramListener(instance, ckey.access_token, ckey.columns[i].stream, ckey.columns[i].column)
+			       console.log(ret)
+			       if(ret===false){
+				ckey.columns.splice(i,1)
+			       }
                                 }
                         }
+                        chrome.storage.local.set({'keys':value.keys},console.log)
                 })
         }, 100)
 })
@@ -143,6 +147,10 @@ function addStramListener(instance, access_token, tstream, column) {
         }
         var wss = instance.replace("https", "wss").replace("http", "ws") + "api/v1/streaming" + "?access_token=" + access_token + "&stream=" + streampath
         var line = getLine(column);
+        console.log(line)
+        if(line===false){
+	return false;
+        }
         line.empty()
         console.log(wss)
         var socket = new WebSocket(wss)
@@ -169,7 +177,10 @@ function addStramListener(instance, access_token, tstream, column) {
                                 'toot': payload.content
                         }
                         // console.log(tootObj)
-                if (this.targetdom.children().length > 50) {
+                if(tootObj.usericon == "missing.png"){
+		tootObj.usericon = "";
+                }
+                if (this.targetdom.children().length > 200) {
                         this.targetdom.children().last().remove();
                 }
                 this.targetdom.prepend(parseContentsData(tootObj))
@@ -180,7 +191,22 @@ function addStramListener(instance, access_token, tstream, column) {
 }
 
 function getLine(column) {
-        var base = $('input[class="js-submittable-input js-column-title-edit-box column-title-edit-box "][value="' + column + '"]');
+        var bases = $('input[class="js-submittable-input js-column-title-edit-box column-title-edit-box "][value="' + column + '"]');
+        var base = null;
+        for (var i = 0; i < bases.length; i++) {
+                base = bases.eq(i)
+                console.log(base)
+                if (!base.prop("disabled")) {
+                        base.prop("disabled", true);
+                        base.css('background-color', "#9C9C9C")
+                        break;
+                }else{
+		base = null;
+                }
+        }
+        if(base == null){
+	return false;
+        }
         var section = base.parents('section').eq(0)
         var line = section.find('[class="js-column-scroller js-dropdown-container column-scroller position-rel scroll-v flex-auto height-p--100 scroll-styled-v "]')
         return line;
