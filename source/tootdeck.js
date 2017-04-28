@@ -149,7 +149,6 @@ function addStramListener(instance, access_token, tstream, column) {
         }
         var wss = instance.replace("https", "wss").replace("http", "ws") + "api/v1/streaming" + "?access_token=" + access_token + "&stream=" + streampath
         var line = getLine(column);
-        console.log(line)
         if (line === false) {
                 return false;
         }
@@ -158,6 +157,7 @@ function addStramListener(instance, access_token, tstream, column) {
         var socket = new WebSocket(wss)
         socket.targetdom = line;
         socket.local_mode = local_mode;
+        socket.tstream = tstream;
         socket.onmessage = function(event) {
                 var data = JSON.parse(event.data);
                 var payst = data.payload;
@@ -167,40 +167,83 @@ function addStramListener(instance, access_token, tstream, column) {
                         return uri.split(':')[1].split(',')[0];
                 })(payload.uri);
 
-                if (typeof payload === typeof 0) {
-                        return;
-                }
-                if (local_mode) {
-                        var reg = /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
-                        // console.log(instanceurl)
+                //koko
+                var tootObj = converteContents(payload)
+
+                if (this.local_mode) {
                         if (instanceurl != local_mode.replace('https://', '').replace("/", '')) {
-                                // console.log(payload.uri)
                                 return;
                         }
-                }
-                if (payload.account.avatar == "/avatars/original/missing.png") {
-                        payload.account.avatar = "https://" + instanceurl + payload.account.avatar
-                }
-                var tootObj = {
-                                'userlink': payload.account.url,
-                                'usericon': payload.account.avatar,
-                                'userid': payload.account.username,
-                                'username': payload.account.display_name,
-                                'posttime': instanceurl,
-                                'toot': payload.content
-                        }
-                        // console.log(tootObj)
-                if (tootObj.usericon == "missing.png") {
-                        tootObj.usericon = "";
                 }
                 if (this.targetdom.children().length > 200) {
                         this.targetdom.children().last().remove();
                 }
                 this.targetdom.prepend(parseContentsData(tootObj))
         };
-        socket.onopen = console.log;
+        socket.onopen = function(event) {
+                var thistmp = this
+                var apipath = (function(param) {
+                        return param == "user" ? "home" : "public";
+                })(this.tstream)
+                $.ajax({
+                        'url': instance + "api/v1/timelines/" + apipath,
+                        "type": "GET",
+                        "headers": {
+                                'Authorization': "Bearer " + access_token
+                        }
+                }).done(function(res) {
+                        for (var index in res) {
+                                if (apipath == "public") {
+			      console.log(thistmp.local_mode)
+                                        if (thistmp.local_mode !== false) {
+				   console.log(thistmp.local_mode)
+                                                var instanceurl = (function(uri) {
+                                                        return uri.split(':')[1].split(',')[0];
+                                                })(res[index].uri);
+                                                console.log(instanceurl)
+                                                if (instanceurl != thistmp.local_mode.replace('https://','').replace('/','')) {
+                                                        continue;
+                                                }
+                                                var tootObj = converteContents(res[index])
+                                                thistmp.targetdom.prepend(parseContentsData(tootObj))
+                                        } else {
+                                                var tootObj = converteContents(res[index])
+                                                thistmp.targetdom.prepend(parseContentsData(tootObj))
+                                        }
+                                } else {
+                                        var tootObj = converteContents(res[index])
+                                        thistmp.targetdom.prepend(parseContentsData(tootObj))
+                                }
+                        }
+                })
+        };
         socket.onclose = console.log;
         socket.onerror = console.log;
+}
+
+function converteContents(payload) {
+        if (typeof payload === typeof 0) {
+                return;
+        }
+        var instanceurl = (function(uri) {
+                return uri.split(':')[1].split(',')[0];
+        })(payload.uri);
+        if (payload.account.avatar == "/avatars/original/missing.png") {
+                payload.account.avatar = "https://" + instanceurl + payload.account.avatar
+        }
+        var tootObj = {
+                        'userlink': payload.account.url,
+                        'usericon': payload.account.avatar,
+                        'userid': payload.account.username,
+                        'username': payload.account.display_name,
+                        'posttime': instanceurl,
+                        'toot': payload.content
+                }
+                // console.log(tootObj)
+        if (tootObj.usericon == "missing.png") {
+                tootObj.usericon = "";
+        }
+        return tootObj;
 }
 
 function getLine(column) {
@@ -212,6 +255,8 @@ function getLine(column) {
                         base.prop("disabled", true);
                         base.css('background-color', "#c8c8c8")
                         base.css('color', '#165b46')
+                        base.on("domStyleChange", console.log)
+                        domStyleWatcher.Start(base, 'background-color');
                         break;
                 } else {
                         base = null;
@@ -265,3 +310,25 @@ function parseContentsData(data) {
                 .replace(/\$toot/g, data.toot)
 }
 // new (require("ws"))("wss://pawoo.net/api/v1/streaming/?access_token=bd6b1598912e4bd9c048010dbb782882467f8ed2b0f84100223f5728e555cd0c&stream=public").on("message",console.log)'
+var domStyleWatcher = {
+        Start: function(tgt, styleobj) {
+                //発生
+                function eventHappen(data1, data2) {
+                        var throwval = tgt.css(styleobj);
+                        tgt.trigger('domStyleChange', [throwval]); //eventを投げる
+                }
+                //監視の登録
+                var tge = tgt[0]; //jQueryオブジェクトをelementに変えてる
+                var filter = ['style']; //styleを見る
+                var options = { //監視オプション
+                        attributes: true,
+                        attributeFilter: filter
+                };
+                var mutOb = new MutationObserver(eventHappen); //監視用インスタンス作成
+                mutOb.observe(tge, options); //監視開始
+                return mutOb; //一応return
+        },
+        Stop: function(mo) {
+                mo.disconnect();
+        }
+};
