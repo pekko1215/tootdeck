@@ -8,7 +8,7 @@ $(function() {
                         var p = b.parents('[class="column-panel flex flex-column height-p--100"]')
                         var i = p.find('[class="js-submittable-input js-column-title-edit-box column-title-edit-box "]').eq(0)
                         var baseURL = i.attr('value');
-                        var tstream = "public"
+                        var tstream = "local"
                         if (baseURL.split(':').length != 1) {
                                 tstream = baseURL.split(':')[1];
                                 baseURL = baseURL.split(':')[0];
@@ -114,22 +114,24 @@ $(function() {
                 } else {
                         return;
                 }
-                chrome.storage.local.get('keys', function(value) {
-                        for (instance in value.keys) {
-                                if (instance == "tmpurl") {
-                                        continue;
+                setTimeout(function(e) {
+                        chrome.storage.local.get('keys', function(value) {
+                                for (instance in value.keys) {
+                                        if (instance == "tmpurl") {
+                                                continue;
+                                        }
+                                        ckey = value.keys[instance]
+                                        for (i in ckey.columns) {
+                                                var ret = addStramListener(instance, ckey.access_token, ckey.columns[i].stream, ckey.columns[i].column)
+                                                console.log(ret)
+                                                if (ret === false) {
+                                                        ckey.columns.splice(i, 1)
+                                                }
+                                        }
                                 }
-                                ckey = value.keys[instance]
-                                for (i in ckey.columns) {
-			       var ret = addStramListener(instance, ckey.access_token, ckey.columns[i].stream, ckey.columns[i].column)
-			       console.log(ret)
-			       if(ret===false){
-				ckey.columns.splice(i,1)
-			       }
-                                }
-                        }
-                        chrome.storage.local.set({'keys':value.keys},console.log)
-                })
+                                chrome.storage.local.set({ 'keys': value.keys }, console.log)
+                        })
+                }, 500);
         }, 100)
 })
 
@@ -148,8 +150,8 @@ function addStramListener(instance, access_token, tstream, column) {
         var wss = instance.replace("https", "wss").replace("http", "ws") + "api/v1/streaming" + "?access_token=" + access_token + "&stream=" + streampath
         var line = getLine(column);
         console.log(line)
-        if(line===false){
-	return false;
+        if (line === false) {
+                return false;
         }
         line.empty()
         console.log(wss)
@@ -160,25 +162,36 @@ function addStramListener(instance, access_token, tstream, column) {
                 var data = JSON.parse(event.data);
                 var payst = data.payload;
                 var payload = JSON.parse(payst);
+
+                var instanceurl = (function(uri) {
+                        return uri.split(':')[1].split(',')[0];
+                })(payload.uri);
+
                 if (typeof payload === typeof 0) {
                         return;
                 }
                 if (local_mode) {
-                        if (payload.uri.indexOf(local_mode.replace('https://', '').replace("/", '')) == -1) {
+                        var reg = /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
+                        // console.log(instanceurl)
+                        if (instanceurl != local_mode.replace('https://', '').replace("/", '')) {
+                                // console.log(payload.uri)
                                 return;
                         }
+                }
+                if (payload.account.avatar == "/avatars/original/missing.png") {
+                        payload.account.avatar = "https://" + instanceurl + payload.account.avatar
                 }
                 var tootObj = {
                                 'userlink': payload.account.url,
                                 'usericon': payload.account.avatar,
                                 'userid': payload.account.username,
                                 'username': payload.account.display_name,
-                                'posttime': payload.created_at,
+                                'posttime': instanceurl,
                                 'toot': payload.content
                         }
                         // console.log(tootObj)
-                if(tootObj.usericon == "missing.png"){
-		tootObj.usericon = "";
+                if (tootObj.usericon == "missing.png") {
+                        tootObj.usericon = "";
                 }
                 if (this.targetdom.children().length > 200) {
                         this.targetdom.children().last().remove();
@@ -195,17 +208,17 @@ function getLine(column) {
         var base = null;
         for (var i = 0; i < bases.length; i++) {
                 base = bases.eq(i)
-                console.log(base)
                 if (!base.prop("disabled")) {
                         base.prop("disabled", true);
-                        base.css('background-color', "#9C9C9C")
+                        base.css('background-color', "#c8c8c8")
+                        base.css('color', '#165b46')
                         break;
-                }else{
-		base = null;
+                } else {
+                        base = null;
                 }
         }
-        if(base == null){
-	return false;
+        if (base == null) {
+                return false;
         }
         var section = base.parents('section').eq(0)
         var line = section.find('[class="js-column-scroller js-dropdown-container column-scroller position-rel scroll-v flex-auto height-p--100 scroll-styled-v "]')
@@ -223,7 +236,7 @@ function parseContentsData(data) {
                     <div class="nbfc "> <span class="account-inline txt-ellipsis"> <b class="fullname link-complex-target">$username</b>   <span class="username txt-mute">@$userid</span> </span>\
                     </div>\
                 </a>\
-                <time class="tweet-timestamp js-timestamp txt-mute flex-shrink--0" datetime="$posttime"> <a class="txt-small no-wrap" href="$poststatus" rel="url" target="_blank">12m</a> </time>\
+                <div class="tweet-timestamp js-timestamp txt-mute flex-shrink--0"><a class="txt-small no-wrap" href="$poststaus" rel="url" target="_blank">$posttime</a> </div>\
             </header>\
             <div class="tweet-body js-tweet-body">\
                 <p class="js-tweet-text tweet-text with-linebreaks " lang="ja">$toot\
