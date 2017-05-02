@@ -194,7 +194,7 @@ function addStramListener(instance, access_token, tstream, column) {
                                 'Authorization': "Bearer " + access_token
                         }
                 }).done(function(res) {
-                        for (var index in res) {
+                        for (var index = res.length-1;index>=0;index--) {
                                 if (apipath == "public") {
 			      // console.log(thistmp.local_mode)
                                         if (thistmp.local_mode !== false) {
