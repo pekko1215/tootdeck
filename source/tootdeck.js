@@ -1,6 +1,6 @@
 $(function() {
         setInterval(function() {
-                var bases = $('fieldset.accordion-divider-t.button-tray');
+                var bases = $('fieldset.button-tray');
                 var b = $('<button id="tootdeck" type="button" class="btn btn-alt btn-neutral btn-options-tray padding-hn padding-rs">')
                 b.click(function(event) {
                         var b = $(this)
