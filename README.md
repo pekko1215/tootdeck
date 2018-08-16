@@ -1,4 +1,5 @@
 ﻿# tootdeck
+![使用例](https://raw.githubusercontent.com/Arika0093/tootdeck/master/others/image.jpg)
 - mastodonのTLをtweetdeckに表示させるchrome拡張
 - pekko1215([@eakonnsamui](https://twitter.com/eakonnsamui))さん作
 
