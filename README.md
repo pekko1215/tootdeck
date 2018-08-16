@@ -1,5 +1,5 @@
 ﻿# tootdeck
-![使用例](https://raw.githubusercontent.com/Arika0093/tootdeck/master/others/image.jpg)
+![使用例](https://raw.githubusercontent.com/Arika0093/tootdeck/master/others/mov.gif)
 - mastodonのTLをtweetdeckに表示させるchrome拡張
 - pekko1215([@eakonnsamui](https://twitter.com/eakonnsamui))さん作
 
@@ -18,13 +18,16 @@
 	- 例えば、pawoo.netのホームTLを出したければ、`pawoo.net:user`と検索。
 - 検索カラム右上の設定ボタンを押すと、mastodonのボタンが表示されるのでそれをクリック。
 - 認証します。
-- Tweetdeckを再読込み(F5)させます。
+- Tweetdeckを再読み込み(F5)させます。
 - 以上！
 
-### Q/A
-- Tootは出来ないの？
-	- 偉大なる先人様が生み出した「Tooter」や「TweetDeckToot」を使いましょう
-	
-	
-### reference
-- ここまでだいたい元作者のreleaseページのパクリ。
+### 機能
+- TLがtweetdeckで見れます。
+- post機能が追加されました(v1.01a)
+- TLの画像を閲覧する機能が追加されました(v1.01a)
+![使用例](https://raw.githubusercontent.com/Arika0093/tootdeck/master/others/image2.png)
+
+### 課題
+- 作成者が複垢持ってないのでちゃんと動作するかは不明。
+- boost/fav/rplyとかはまだ未実装。必要になったら実装。
+
