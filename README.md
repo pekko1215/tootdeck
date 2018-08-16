@@ -25,6 +25,7 @@
 - TLがtweetdeckで見れます。
 - post機能が追加されました(v1.01a)
 - TLの画像を閲覧する機能が追加されました(v1.01a)
+
 ![使用例](https://raw.githubusercontent.com/Arika0093/tootdeck/master/others/image2.png)
 
 ### 課題
