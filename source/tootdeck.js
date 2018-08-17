@@ -1,12 +1,36 @@
+const DOM = {
+	// 検索フィールドの設定項目のdiv
+	bases: 'fieldset.button-tray',
+	// mstdn認証開始のボタン
+	mstdn_button: '<button id="tootdeck" type="button" class="btn btn-alt btn-neutral btn-options-tray padding-hn padding-rs">',
+	// 検索カラム自体
+	mbtn_parent: '.column-panel.flex.flex-column.height-p--100',
+	// 検索カラムの検索ボックス
+	mbtn_searchbox: '.js-submittable-input.js-column-title-edit-box.column-title-edit-box',
+	// 
+	mbtn_column: '.js-column-holder.column-holder',
+	// 検索設定項目のcloseとかのボタンがあるとこ
+	mbtn_btns: 'i.pull-left.icon.icon-search',
+	// tweetボタンがある場所
+	postbtn_field: "div.compose-content.antiscroll-wrap .cf.margin-b--30 .pull-right",
+	// ツイート内容を入力するbox
+	textarea: "textarea.compose-text",
+	// 
+	postbtns: "button.js - send - button",
+	//
+	line_base: "input.js-submittable-input.js-column-title-edit-box",
+	//
+	linedom: '.js-column-scroller.js-dropdown-container',
+};
+
 $(function() {
 	setInterval(function() {
-		var bases = $('fieldset.button-tray');
-		var b = $('<button id="tootdeck" type="button" class="btn btn-alt btn-neutral btn-options-tray padding-hn padding-rs">')
+		var bases = $(DOM.bases);
+		var b = $(DOM.mstdn_button)
 		b.click(function(event) {
 			var b = $(this)
-			console.log(b)
-			var p = b.parents('.column-panel.flex.flex-column.height-p--100')
-			var i = p.find('.js-submittable-input.js-column-title-edit-box.column-title-edit-box').eq(0)
+			var p = b.parents(DOM.mbtn_parent)
+			var i = p.find(DOM.mbtn_searchbox).eq(0)
 			var baseURL = i.attr('value');
 			var tstream = "local"
 			if (baseURL.split(':').length != 1) {
@@ -101,7 +125,7 @@ $(function() {
 		b.append('<span class="label">Mastodon</span>')
 		for (var i = 0; i < bases.length; i++) {
 			base = bases.eq(i);
-			var sc = base.parents('.js-column-holder.column-holder').find('i.pull-left.icon.icon-search');
+			var sc = base.parents(DOM.mbtn_column).find(DOM.mbtn_btns);
 			if (base.find('#tootdeck').length == 0 && sc.length != 0) {
 				base.append(b)
 			}
@@ -138,59 +162,6 @@ $(function() {
 		}, 500);
 	}, 100)
 });
-
-function addTootButton(keys){
-	var key_arrays = Object.keys(keys);
-	var instances = key_arrays.filter((e) => e != "tmpurl" && keys[e].access_token);
-	instances.forEach((instance, index) => {
-		var key = keys[instance] || {};
-		var button_h = `<div class="js-send-button-container spinner-button-container">
-		<button class="toot-button is-disabled js-send-button js-spinner-button js-show-tip Button--success btn-extra-height padding-v--6 padding-h--15"
-		data-original-title="Toot${index == 0 ? " (Alt + Enter)" : ""}" data-instance="${instance}" data-token="${key.access_token}">
-		Toot to ${instance.replace(/https?:/g, "").replace(/\//g, "")}</button>
-		<i class="js-compose-sending-success icon-center-16 compose-send-button-success icon icon-check is-hidden"></i>
-		<i class="js-spinner-button-active icon-center-16 spinner-button-icon-spinner is-hidden"></i> </div>`;
-		if ($(".toot-button").length) {
-			// existed
-			return false;
-		}
-		// add button
-		$("div.compose-content.antiscroll-wrap .cf.margin-b--30 .pull-right").append(button_h);
-	});
-	// action adding
-	var txarea = $("textarea.compose-text");
-	var button = $(".toot-button");
-	txarea
-		.on("keydown", function (e) {
-			if(e.keyCode == 13 && e.altKey){
-				var i = instances[0];
-				// toot use first account
-				postToot(i, keys[i].access_token, txarea.val());
-				txarea.val("");
-				$("button.js-send-button").addClass("is-disabled");
-				txarea.focus();
-			}
-		})
-		.on("keyup", function () {
-			var tx = txarea.val();
-			button.toggleClass("is-disabled", (tx.length <= 0 || tx.length > 500));
-		});
-	button.on("click", function () {
-		var tx = txarea.val();
-		var btn = $(this);
-		if (!(tx.length <= 0 || tx.length > 500)) {
-			var i = btn.data("instance");
-			var t = btn.data("token");
-			// toot
-			postToot(i, t, tx);
-			// clear
-			txarea.val("");
-			$("button.js-send-button").addClass("is-disabled");
-			txarea.focus();
-		}
-	});
-	return true;
-}
 
 function postToot(instance, token, text){
 	var t_enc = text; //encodeURIComponent(text);
@@ -326,7 +297,7 @@ function converteContents(payload) {
 }
 
 function getLine(column) {
-	var bases = $('input.js-submittable-input.js-column-title-edit-box[value="' + column + '"]');
+	var bases = $(`${DOM.line_base}[value="${column}"]`);
 	var base = null;
 	for (var i = 0; i < bases.length; i++) {
 		base = bases.eq(i)
@@ -345,8 +316,86 @@ function getLine(column) {
 		return false;
 	}
 	var section = base.parents('section').eq(0)
-	var line = section.find('.js-column-scroller.js-dropdown-container')
+	var line = section.find(DOM.linedom)
 	return line;
+}
+
+var domStyleWatcher = {
+	Start: function (tgt, styleobj) {
+		//発生
+		function eventHappen(data1, data2) {
+			var throwval = tgt.css(styleobj);
+			tgt.trigger('domStyleChange', [throwval]); //eventを投げる
+		}
+		//監視の登録
+		var tge = tgt[0]; //jQueryオブジェクトをelementに変えてる
+		var filter = ['style']; //styleを見る
+		var options = { //監視オプション
+			attributes: true,
+			attributeFilter: filter
+		};
+		var mutOb = new MutationObserver(eventHappen); //監視用インスタンス作成
+		mutOb.observe(tge, options); //監視開始
+		return mutOb; //一応return
+	},
+	Stop: function (mo) {
+		mo.disconnect();
+	}
+};
+
+// ----------------------------
+// rendering side
+function addTootButton(keys) {
+	var key_arrays = Object.keys(keys);
+	var instances = key_arrays.filter((e) => e != "tmpurl" && keys[e].access_token);
+	instances.forEach((instance, index) => {
+		var key = keys[instance] || {};
+		var button_h = `<div class="js-send-button-container spinner-button-container">
+		<button class="toot-button is-disabled js-send-button js-spinner-button js-show-tip Button--success btn-extra-height padding-v--6 padding-h--15"
+		data-original-title="Toot${index == 0 ? " (Alt + Enter)" : ""}" data-instance="${instance}" data-token="${key.access_token}">
+		Toot to ${instance.replace(/https?:/g, "").replace(/\//g, "")}</button>
+		<i class="js-compose-sending-success icon-center-16 compose-send-button-success icon icon-check is-hidden"></i>
+		<i class="js-spinner-button-active icon-center-16 spinner-button-icon-spinner is-hidden"></i> </div>`;
+		if ($(".toot-button").length) {
+			// existed
+			return false;
+		}
+		// add button
+		$(DOM.postbtn_field).append(button_h);
+	});
+	// action adding
+	var txarea = $(DOM.textarea);
+	var button = $(".toot-button");
+	txarea
+		.on("keydown", function (e) {
+			if (e.keyCode == 13 && e.altKey) {
+				var i = instances[0];
+				// toot use first account
+				postToot(i, keys[i].access_token, txarea.val());
+				txarea.val("");
+				$(DOM.postbtns).addClass("is-disabled");
+				txarea.focus();
+			}
+		})
+		.on("keyup", function () {
+			var tx = txarea.val();
+			button.toggleClass("is-disabled", (tx.length <= 0 || tx.length > 500));
+		});
+	button.on("click", function () {
+		var tx = txarea.val();
+		var btn = $(this);
+		if (!(tx.length <= 0 || tx.length > 500)) {
+			var i = btn.data("instance");
+			var t = btn.data("token");
+			// toot
+			postToot(i, t, tx);
+			// clear
+			txarea.val("");
+			$(DOM.postbtns).addClass("is-disabled");
+			txarea.focus();
+		}
+	});
+	return true;
 }
 
 function parseContentsData(data) {
@@ -400,26 +449,3 @@ function parseContentsData(data) {
 		.replace(/\$toot/g, data.toot)
 		.replace(/\$media/g, media_html || "")
 }
-// new (require("ws"))("wss://pawoo.net/api/v1/streaming/?access_token=bd6b1598912e4bd9c048010dbb782882467f8ed2b0f84100223f5728e555cd0c&stream=public").on("message",console.log)'
-var domStyleWatcher = {
-	Start: function(tgt, styleobj) {
-		//発生
-		function eventHappen(data1, data2) {
-			var throwval = tgt.css(styleobj);
-			tgt.trigger('domStyleChange', [throwval]); //eventを投げる
-		}
-		//監視の登録
-		var tge = tgt[0]; //jQueryオブジェクトをelementに変えてる
-		var filter = ['style']; //styleを見る
-		var options = { //監視オプション
-			attributes: true,
-			attributeFilter: filter
-		};
-		var mutOb = new MutationObserver(eventHappen); //監視用インスタンス作成
-		mutOb.observe(tge, options); //監視開始
-		return mutOb; //一応return
-	},
-	Stop: function(mo) {
-		mo.disconnect();
-	}
-};
